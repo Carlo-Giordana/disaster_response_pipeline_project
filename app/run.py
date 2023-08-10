@@ -8,6 +8,8 @@ from nltk.tokenize import word_tokenize
 from flask import Flask
 from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar
+from plotly.graph_objs import Pie
+from plotly.graph_objs import Scatter
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
@@ -26,11 +28,11 @@ def tokenize(text):
     return clean_tokens
 
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///../data/DisasterResponse.db')
+df = pd.read_sql_table('messages', engine)
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = joblib.load("../models/classifier.pkl")
 
 
 # index webpage displays cool visuals and receives user input text for model
@@ -39,21 +41,27 @@ model = joblib.load("../models/your_model_name.pkl")
 def index():
     
     # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
+    
+    # First Chart - Pie Plot
     genre_counts = df.groupby('genre').count()['message']
+    genre_values = list(genre_counts)
     genre_names = list(genre_counts.index)
+    
+    # Second Chart - Bar Plot
+    target = df.drop(['id', 'message', 'original', 'genre'], axis = 1)
+    category_counts = [sum(target[col]) for col in target]
+    category_names = target.columns.str.replace('_',' ')
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
         {
             'data': [
-                Bar(
-                    x=genre_names,
-                    y=genre_counts
+                Pie(
+                    labels=genre_names,
+                    values=genre_values
                 )
             ],
-
             'layout': {
                 'title': 'Distribution of Message Genres',
                 'yaxis': {
@@ -61,6 +69,29 @@ def index():
                 },
                 'xaxis': {
                     'title': "Genre"
+                }
+            }
+        },
+        
+        {
+            'data': [
+                Bar(
+                    x=category_names,
+                    y=category_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of Message Category',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Category",
+                    'automargin' : 'TRUE'
+                },
+                'margin': {
+                    'b': 200
                 }
             }
         }
@@ -93,7 +124,7 @@ def go():
 
 
 def main():
-    app.run(host='0.0.0.0', port=3001, debug=True)
+    app.run(host='0.0.0.0', port=3000, debug=True)
 
 
 if __name__ == '__main__':
